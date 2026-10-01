@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      if (
+        location.protocol === "file:" &&
+        !document.documentElement.hasAttribute("data-standalone")
+      ) {
+        location.replace(new URL("./index.html", location.href).href);
+      }
+    </script>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f5f6f8" />
+    <meta
+      name="description"
+      content="一個安靜的白色房間。摸摸白夜，看牠發亮，陪渡川市的小神明待一會。"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23eef0f5'/%3E%3Ccircle cx='32' cy='32' r='22' fill='white'/%3E%3Cellipse cx='24' cy='30' rx='2.5' ry='3.5' fill='%235a5b74'/%3E%3Cellipse cx='40' cy='30' rx='2.5' ry='3.5' fill='%235a5b74'/%3E%3Cpath d='M27 39Q32 45 37 39' fill='none' stroke='%235a5b74' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <title>白夜的小房間</title>
+  </head>
+  <body>
+    <main class="room" aria-label="白夜的互動房間">
+      <div
+        id="scene"
+        class="scene"
+        role="group"
+        aria-label="白夜自由飄浮，旁邊放著灰色厚坐墊和小小熊"
+      ></div>
+      <header class="room-header">
+        <div class="identity">
+          <span class="eyebrow">街角珈琲店 · 破曉</span>
+          <h1>白夜的小房間<span class="title-dot">。</span></h1>
+        </div>
+        <button
+          id="lamp"
+          class="lamp-button"
+          aria-pressed="true"
+          aria-label="關燈"
+        >
+          <span class="lamp-icon" aria-hidden="true">☼</span
+          ><span id="lamp-label">關燈</span>
+        </button>
+      </header>
+      <div class="room-note">
+        <span class="note-line"></span><span>渡川市的神明，今天也在這裡。</span>
+      </div>
+      <div id="thought" class="thought" role="status" aria-live="polite">
+        <span id="thought-text"></span>
+      </div>
+      <div class="bottom-ui">
+        <div class="mood-line">
+          <span id="mood-mark" class="mood-mark" aria-hidden="true">✧</span
+          ><span id="mood">安安靜靜地飄著</span>
+        </div>
+        <div class="toolbar" role="group" aria-label="和白夜互動">
+          <button id="bear" class="action-button" aria-pressed="false">
+            <span aria-hidden="true">ʕ•ᴥ•ʔ</span>小小熊
+          </button>
+        </div>
+        <p id="hint" class="hint">
+          直接輕碰、慢慢摸；捏住一小塊輕拖。停留一會，白夜會自己靠過來。
+        </p>
+      </div>
+      <div id="loading" class="loading" role="status">
+        白夜正慢慢飄過來<span>⋯</span>
+      </div>
+      <div id="fallback" class="fallback" hidden>
+        <p>這個房間需要瀏覽器的 3D 顯示功能。</p>
+        <p>請開啟硬體加速，或換一個支援 WebGL 2 的瀏覽器。</p>
+      </div>
+      <noscript
+        ><p class="fallback">
+          請開啟 JavaScript，讓白夜的小房間亮起來。
+        </p></noscript
+      >
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+
