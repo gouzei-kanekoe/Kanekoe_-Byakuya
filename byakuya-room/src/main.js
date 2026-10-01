@@ -88,7 +88,7 @@ function resetContact() {
   room.target.hug = 0;
   for (const id of ids) {
     try {
-      room.renderer.domElement.releasePointerCapture(id);
+      room.canvas.releasePointerCapture(id);
     } catch {}
   }
 }
@@ -101,7 +101,7 @@ function pointerDown(e) {
   }
   if (gestures.size >= 2) return;
   e.preventDefault();
-  const canvas = room.renderer.domElement;
+  const canvas = room.canvas;
   canvas.setPointerCapture(e.pointerId);
   const slot = [...gestures.values()].some((g) => g.slot === 0) ? 1 : 0;
   gestures.set(e.pointerId, {
@@ -182,7 +182,7 @@ function pointerUp(e) {
   gestures.delete(e.pointerId);
   (g.slot === 0 ? room.target.pull : room.target.pull2).set(0, 0);
   try {
-    room.renderer.domElement.releasePointerCapture(e.pointerId);
+    room.canvas.releasePointerCapture(e.pointerId);
   } catch {}
   if (!gestures.size) {
     room.target.pressure = state.time < pokeUntil ? 0.15 : 0;
@@ -240,7 +240,7 @@ $("#bear").addEventListener("click", () => setBear(!state.hasBear), {
 });
 try {
   room = createRoom(host);
-  const canvas = room.renderer.domElement;
+  const canvas = room.canvas;
   for (const [event, fn] of [
     ["pointerdown", pointerDown],
     ["pointermove", pointerMove],
