@@ -3,15 +3,12 @@ import { clamp } from "./state.js";
 const TAU = Math.PI * 2;
 // Local units: body half-width is 1, y points down like the canvas.
 export const SHAPE = { top: 0.84, bottom: 0.66, flat: 2.6 };
-// Paws come out low on the sides; when hugging the bear they start higher.
+// Little paws peek out from the lower sides, and never reach far.
 export const HAND_ANCHORS = [
-  { x: -0.6, y: 0.5 },
-  { x: 0.6, y: 0.5 },
+  { x: -0.8, y: 0.32 },
+  { x: 0.8, y: 0.32 },
 ];
-export const HUG_ANCHORS = [
-  { x: -0.8, y: 0.3 },
-  { x: 0.8, y: 0.3 },
-];
+export const HAND_LENGTH = 0.22;
 const INK = "#4a4862";
 
 // Mochi silhouette: a round dome on top, wider and flatter underneath.
@@ -96,13 +93,12 @@ export function insideContour(points, x, y, pad = 1) {
   return inside;
 }
 
-export function handPose(anchor, target, reach) {
+export function handPose(anchor, target, reach, maxLength = HAND_LENGTH) {
   reach = clamp(reach, 0, 1);
-  return {
-    x: anchor.x + (target.x - anchor.x) * reach,
-    y: anchor.y + (target.y - anchor.y) * reach,
-    reach,
-  };
+  const dx = target.x - anchor.x,
+    dy = target.y - anchor.y,
+    k = Math.min(1, maxLength / (Math.hypot(dx, dy) || 1)) * reach;
+  return { x: anchor.x + dx * k, y: anchor.y + dy * k, reach };
 }
 
 const smooth = (a, b, v) => {
@@ -297,7 +293,7 @@ export function drawFace(ctx, features, pose, v) {
   ctx.restore();
 }
 
-// Stubby arms of light that taper into round little paws.
+// Short, chubby nubs of light ending in round little paws.
 export function drawHands(ctx, hands, v) {
   ctx.save();
   for (const hand of hands) {
@@ -305,37 +301,29 @@ export function drawHands(ctx, hands, v) {
     const a = { x: v.x + hand.anchor.x * v.r, y: v.y + hand.anchor.y * v.r },
       t = { x: v.x + hand.x * v.r, y: v.y + hand.y * v.r },
       grow = clamp(hand.reach * 2.2, 0, 1),
-      side = Math.sign(hand.anchor.x) || 1,
-      bow = hand.bow ?? 0,
-      c = {
-        x: (a.x + t.x) / 2 + side * v.r * (0.08 + bow * 0.12),
-        y: (a.y + t.y) / 2 - v.r * (0.06 - bow * 0.16),
-      },
-      paw = v.r * 0.088 * grow;
+      paw = v.r * 0.09 * grow;
     ctx.beginPath();
-    for (let i = 0; i <= 14; i++) {
-      const k = i / 14,
-        x = (1 - k) ** 2 * a.x + 2 * (1 - k) * k * c.x + k * k * t.x,
-        y = (1 - k) ** 2 * a.y + 2 * (1 - k) * k * c.y + k * k * t.y,
-        r = v.r * (0.095 - k * 0.03) * grow;
+    for (let i = 0; i <= 8; i++) {
+      const k = i / 8,
+        x = a.x + (t.x - a.x) * k,
+        y = a.y + (t.y - a.y) * k,
+        r = v.r * (0.08 + k * 0.01) * grow;
       ctx.moveTo(x + r, y);
       ctx.arc(x, y, r, 0, TAU);
     }
-    ctx.moveTo(t.x + paw, t.y);
-    ctx.arc(t.x, t.y, paw, 0, TAU);
     ctx.shadowColor = "rgba(226,236,255,0.95)";
-    ctx.shadowBlur = v.r * 0.2 * v.dpr;
+    ctx.shadowBlur = v.r * 0.18 * v.dpr;
     ctx.fillStyle = "#fbfcff";
     ctx.fill();
     // Soft outline only around the outer edge of the paw.
     ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";
-    const away = Math.atan2(t.y - c.y, t.x - c.x);
+    const away = Math.atan2(t.y - a.y, t.x - a.x);
     ctx.strokeStyle = `rgba(160,174,222,${0.7 * grow})`;
     ctx.lineWidth = v.r * 0.02;
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.arc(t.x, t.y, paw, away - 1.75, away + 1.75);
+    ctx.arc(t.x, t.y, paw, away - 1.6, away + 1.6);
     ctx.stroke();
   }
   ctx.restore();

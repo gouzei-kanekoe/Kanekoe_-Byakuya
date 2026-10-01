@@ -43,17 +43,6 @@ function wobblyEllipse(ctx, cx, cy, rx, ry, rotation, rand, amount = 0.025) {
   ctx.closePath();
 }
 
-function blob(ctx, cx, cy, rx, ry, rotation, fill, rand, line = 2.4) {
-  wobblyEllipse(ctx, cx, cy, rx, ry, rotation, rand);
-  ctx.fillStyle = fill;
-  ctx.fill();
-  if (line) {
-    ctx.lineWidth = line;
-    ctx.strokeStyle = LINE;
-    ctx.stroke();
-  }
-}
-
 // Marker-on-paper texture: uneven pigment that stays inside painted areas.
 function watercolor(ctx, x, y, w, h, rand, tones, count) {
   ctx.save();
@@ -72,60 +61,120 @@ function watercolor(ctx, x, y, w, h, rand, tones, count) {
   ctx.restore();
 }
 
-// 小小熊, after the little bear in #27: chubby, round ears, pink cheeks.
+// Soft pastel shading: lighter towards the upper middle, deeper at the edges.
+function pastel(ctx, cx, cy, rx, ry, light, mid, dark) {
+  const g = ctx.createRadialGradient(cx - rx * 0.15, cy - ry * 0.3, 0, cx, cy, Math.max(rx, ry) * 1.15);
+  g.addColorStop(0, light);
+  g.addColorStop(0.55, mid);
+  g.addColorStop(1, dark);
+  return g;
+}
+
+// Crayon outline: the same wobbly shape traced a few times, never quite on top.
+function crayon(ctx, cx, cy, rx, ry, rotation, rand, color, width) {
+  ctx.strokeStyle = color;
+  for (const [alpha, w] of [
+    [0.85, 1],
+    [0.4, 0.6],
+    [0.22, 1.35],
+  ]) {
+    wobblyEllipse(ctx, cx + (rand() - 0.5) * 0.6, cy + (rand() - 0.5) * 0.6, rx, ry, rotation, rand, 0.035);
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = width * w;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// 小小熊, after the author's 街角珈琲店 bear: wide head, big pink cheeks,
+// cream muzzle and tummy, paws held together at the chest.
 export function paintBear(height, dpr) {
-  const scale = height / 124,
+  const W = 110,
+    H = 124,
+    scale = height / H,
     pad = 4;
-  const { canvas, ctx } = surface(100 * scale + pad * 2, height + pad * 2, dpr);
+  const { canvas, ctx } = surface(W * scale + pad * 2, height + pad * 2, dpr);
   ctx.translate(pad, pad);
   ctx.scale(scale, scale);
   ctx.lineJoin = ctx.lineCap = "round";
   const rand = random(27),
-    fur = "#9c7857",
-    light = "#dcc3a0";
-  for (const side of [-1, 1]) {
-    blob(ctx, 50 + side * 25, 22, 13, 13, 0, fur, rand);
-    blob(ctx, 50 + side * 23.5, 24, 7, 6.5, 0, "#e7a45e", rand, 0);
-  }
-  blob(ctx, 50, 88, 30, 28, 0, fur, rand);
-  blob(ctx, 50, 91, 15, 14, 0, "#b48f6a", rand, 0);
-  for (const side of [-1, 1]) {
-    blob(ctx, 50 + side * 16, 112, 13, 10, side * 0.12, fur, rand);
-    blob(ctx, 50 + side * 16, 114, 6, 4.5, 0, light, rand, 0);
-    blob(ctx, 50 + side * 29, 82, 10, 14, side * -0.55, fur, rand);
-  }
-  blob(ctx, 50, 46, 34, 29, 0, fur, rand);
-  blob(ctx, 50, 56, 12.5, 9, 0, light, rand, 1.6);
-  ctx.fillStyle = LINE;
-  for (const side of [-1, 1]) {
-    ctx.beginPath();
-    ctx.arc(50 + side * 13, 44, 2.9, 0, TAU);
+    line = "#93552e",
+    lw = 1.9,
+    furLight = "#ad9278",
+    fur = "#9b8066",
+    furDark = "#856a53",
+    cream = "#efe2cc",
+    orange = "#e59c55",
+    ink = "#4a2b20";
+  const part = (cx, cy, rx, ry, rot, fill, outline = true) => {
+    wobblyEllipse(ctx, cx, cy, rx, ry, rot, rand);
+    ctx.fillStyle = fill;
     ctx.fill();
-  }
-  ctx.fillStyle = "#ffffff";
+    if (outline) crayon(ctx, cx, cy, rx, ry, rot, rand, line, lw);
+  };
+  // Ears sit behind the head.
   for (const side of [-1, 1]) {
-    ctx.beginPath();
-    ctx.arc(50 + side * 13 + 1, 43, 0.9, 0, TAU);
-    ctx.fill();
+    const ex = 55 + side * 31;
+    part(ex, 17, 13, 12.5, 0, pastel(ctx, ex, 17, 13, 12.5, furLight, fur, furDark));
+    part(ex - side * 2.5, 20.5, 5.5, 5, 0, orange, false);
   }
-  ctx.fillStyle = "rgba(240,150,150,0.85)";
-  for (const side of [-1, 1]) {
-    ctx.beginPath();
-    ctx.ellipse(50 + side * 22, 55, 5.5, 3.8, 0, 0, TAU);
-    ctx.fill();
-  }
-  ctx.fillStyle = "#3a2b28";
+  // Body, tummy and feet.
+  part(55, 95, 33, 29, 0, pastel(ctx, 55, 95, 33, 29, furLight, fur, furDark));
+  part(55, 103, 21, 19, 0, cream, false);
+  ctx.save();
+  wobblyEllipse(ctx, 55, 103, 21, 19, 0, rand);
+  ctx.clip();
+  ctx.fillStyle = "rgba(160,120,90,0.18)";
   ctx.beginPath();
-  ctx.ellipse(50, 52, 4.4, 3.1, 0, 0, TAU);
+  ctx.ellipse(55, 122, 26, 10, 0, 0, TAU);
   ctx.fill();
-  ctx.strokeStyle = "#3a2b28";
-  ctx.lineWidth = 1.5;
+  ctx.restore();
+  for (const side of [-1, 1]) {
+    const fx = 55 + side * 22;
+    part(fx, 115, 12.5, 8.5, side * 0.15, pastel(ctx, fx, 115, 12.5, 8.5, furLight, fur, furDark));
+    part(fx + side * 0.5, 116.5, 5, 3.4, side * 0.15, cream, false);
+  }
+  // Paws held together at the chest, one resting on the other.
+  const arm = (sx, sy, hx, hy, pad) => {
+    const cx = (sx + hx) / 2,
+      cy = (sy + hy) / 2,
+      rot = Math.atan2(hy - sy, hx - sx),
+      rx = Math.hypot(hx - sx, hy - sy) / 2 + 2;
+    part(cx, cy, rx, 8, rot, pastel(ctx, cx, cy, rx, 8, furLight, fur, furDark));
+    part(hx - Math.cos(rot) * 4, hy - Math.sin(rot) * 4, pad, pad * 0.82, rot, orange, false);
+  };
+  arm(28, 85, 53, 93, 4.6);
+  arm(82, 82, 58, 89, 5.2);
+  // Head on top.
+  part(55, 45, 40, 33, 0, pastel(ctx, 55, 45, 40, 33, furLight, fur, furDark));
+  for (const side of [-1, 1]) {
+    const g = ctx.createRadialGradient(55 + side * 27, 57, 0, 55 + side * 27, 57, 10.5);
+    g.addColorStop(0, "rgba(242,170,162,0.95)");
+    g.addColorStop(0.7, "rgba(242,170,162,0.75)");
+    g.addColorStop(1, "rgba(242,170,162,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(55 + side * 27, 57, 10.5, 0, TAU);
+    ctx.fill();
+  }
+  part(55, 54, 14, 11, 0, cream);
+  ctx.fillStyle = ink;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(55 + side * 20, 41, 3.6, 5, 0, 0, TAU);
+    ctx.fill();
+  }
   ctx.beginPath();
-  ctx.moveTo(50, 54.5);
-  ctx.lineTo(50, 57.5);
-  ctx.moveTo(45.5, 58);
-  ctx.quadraticCurveTo(47.8, 61, 50, 57.5);
-  ctx.quadraticCurveTo(52.2, 61, 54.5, 58);
+  ctx.ellipse(55, 48.5, 4.2, 3, 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 1.7;
+  ctx.beginPath();
+  ctx.moveTo(55, 51);
+  ctx.lineTo(55, 54);
+  ctx.moveTo(48.5, 54);
+  ctx.quadraticCurveTo(51.7, 58.5, 55, 54);
+  ctx.quadraticCurveTo(58.3, 58.5, 61.5, 54);
   ctx.stroke();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   watercolor(
@@ -135,10 +184,28 @@ export function paintBear(height, dpr) {
     canvas.width,
     canvas.height,
     rand,
-    ["rgba(70,45,30,0.12)", "rgba(255,240,215,0.12)", "rgba(120,80,50,0.1)"],
-    26,
+    ["rgba(90,60,40,0.1)", "rgba(255,244,228,0.1)", "rgba(150,100,70,0.08)"],
+    24,
   );
-  return { canvas, width: 100 * scale + pad * 2, height: height + pad * 2, pad };
+  // Pastel grain.
+  ctx.save();
+  ctx.globalCompositeOperation = "source-atop";
+  const grains = Math.round((canvas.width * canvas.height) / 9);
+  for (let i = 0; i < grains; i++) {
+    ctx.fillStyle = rand() < 0.5 ? `rgba(255,246,232,${0.05 + rand() * 0.1})` : `rgba(70,40,25,${0.04 + rand() * 0.08})`;
+    ctx.fillRect(rand() * canvas.width, rand() * canvas.height, 1 + rand() * dpr, 1);
+  }
+  ctx.restore();
+  const width = W * scale + pad * 2,
+    total = height + pad * 2;
+  return {
+    canvas,
+    width,
+    height: total,
+    pad,
+    // Where little paws can hold the bear: the sides of its chest, as fractions of the image.
+    grip: { y: (pad + 88 * scale) / total, left: (pad + 23 * scale) / width, right: (pad + 87 * scale) / width },
+  };
 }
 
 // Rounded quadrilateral with softly puffed edges.
@@ -339,12 +406,23 @@ function miniBear(ctx, cx, cy, s, rand) {
   };
   ring(cx - s * 0.72, cy - s * 0.72, s * 0.3, s * 0.3);
   ring(cx + s * 0.72, cy - s * 0.72, s * 0.3, s * 0.3);
-  ring(cx, cy, s, s * 0.84);
-  ring(cx, cy + s * 0.25, s * 0.3, s * 0.22);
+  ring(cx, cy, s * 1.1, s * 0.86);
+  ring(cx, cy + s * 0.24, s * 0.3, s * 0.22);
   ctx.fillStyle = "rgba(238,242,255,0.6)";
   for (const side of [-1, 1]) {
     ctx.beginPath();
-    ctx.arc(cx + side * s * 0.38, cy - s * 0.1, Math.max(1.3, s * 0.07), 0, TAU);
+    ctx.ellipse(cx + side * s * 0.46, cy - s * 0.2, Math.max(1.2, s * 0.06), Math.max(1.6, s * 0.085), 0, 0, TAU);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + s * 0.15, Math.max(1.4, s * 0.08), Math.max(1, s * 0.055), 0, 0, TAU);
+  ctx.fill();
+  chalkLine(ctx, [[cx - s * 0.12, cy + s * 0.3], [cx - s * 0.06, cy + s * 0.35], [cx, cy + s * 0.29], [cx + s * 0.06, cy + s * 0.35], [cx + s * 0.12, cy + s * 0.3]], rand, 0.55, 1.2);
+  // Big round cheeks, softly chalked in pink.
+  ctx.fillStyle = "rgba(255,190,200,0.35)";
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(cx + side * s * 0.62, cy + s * 0.25, s * 0.2, 0, TAU);
     ctx.fill();
   }
 }

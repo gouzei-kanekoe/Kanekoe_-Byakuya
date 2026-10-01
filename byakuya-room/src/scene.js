@@ -2,7 +2,6 @@ import { Spring, clamp } from "./state.js";
 import { LocalTouch, FaceMotion, Blinker } from "./motion.js";
 import {
   HAND_ANCHORS,
-  HUG_ANCHORS,
   SHAPE,
   deformPoint,
   drawAura,
@@ -32,8 +31,8 @@ class V2 {
   }
 }
 const ease = (dt, rate) => 1 - Math.exp(-dt * rate);
-// Where the held bear sits: top edge below the mouth, paws around its middle.
-const BEAR_HELD = { top: 0.27, size: 0.98, paws: { x: 0.32, y: 0.9 } };
+// The held bear sits just below the mouth, in front of Byakuya's lower half.
+const BEAR_HELD = { top: 0.22, size: 0.86 };
 
 function makeLayout(w, h) {
   const mobile = w / h < 0.8;
@@ -257,34 +256,57 @@ export function createRoom(host) {
     ])
       emotes[key] += ((on ? 1 : 0) - emotes[key]) * ease(dt, on ? 6 : 3);
 
-    // Little hands of light hold the bear, or the hand that stays to cuddle.
+    // The bear glides between the cushion and Byakuya's arms.
     heldAmount += ((state.hasBear ? 1 : 0) - heldAmount) * ease(dt, 2.6);
-    const anchors = HAND_ANCHORS.map((a, i) =>
-      deformPoint(
-        {
-          x: a.x + (HUG_ANCHORS[i].x - a.x) * heldAmount,
-          y: a.y + (HUG_ANCHORS[i].y - a.y) * heldAmount,
-        },
-        pose,
-      ),
-    );
+    const held = {
+      x: center.x,
+      y: center.y + (BEAR_HELD.top + BEAR_HELD.size) * radius(),
+    };
+    const onCushion = {
+      // Scoot aside when Byakuya is the one resting on the cushion.
+      x: cushion.x - rest * cushion.width * 0.32,
+      y: cushion.baseY - (cushionArt.baseY - cushionArt.seatY) + r * 0.08,
+    };
+    const bearGoal = state.hasBear ? held : onCushion;
+    if (Number.isNaN(bearPos.x)) bearPos.copy(bearGoal);
+    const follow = ease(dt, state.hasBear && heldAmount > 0.7 ? 14 : 2.6);
+    bearPos.x += (bearGoal.x - bearPos.x) * follow;
+    bearPos.y += (bearGoal.y - bearPos.y) * follow;
+    const bearSize = r * 1.15 + (radius() * BEAR_HELD.size - r * 1.15) * heldAmount,
+      bearTilt = heldAmount * (still ? 0 : Math.sin(time * 0.9) * 0.05);
+
+    // Little hands of light peek out to hold the bear, or to cuddle.
+    const bearWidth = bearArt.width * (bearSize / bearArt.height),
+      gripY = (bearPos.y - bearSize + bearArt.grip.y * bearSize - center.y) / radius();
     const cuddling = hug > 0.35 && !state.hasBear,
       touchDistance = Math.hypot(touch.x, touch.y);
-    const hands = anchors.map((anchor, i) => {
+    const hands = HAND_ANCHORS.map((base, i) => {
       const side = i ? 1 : -1;
+      // Paws hold the sides of the bear's chest, rooted just inside the body.
+      const grip = {
+        x: (bearPos.x - center.x + ((i ? bearArt.grip.right : bearArt.grip.left) - 0.5) * bearWidth) / radius() + side * 0.04,
+        y: gripY,
+      };
+      const root = { x: grip.x + side * 0.05, y: grip.y - 0.11 };
+      const anchor = deformPoint(
+        {
+          x: base.x + (root.x - base.x) * heldAmount,
+          y: base.y + (root.y - base.y) * heldAmount,
+        },
+        pose,
+      );
       let goal;
-      if (state.hasBear) goal = { x: side * BEAR_HELD.paws.x, y: BEAR_HELD.paws.y };
+      if (state.hasBear) goal = grip;
       else if (side * touch.x > 0.2 && touchDistance > 0.72) {
         // A hand near the edge gets held by the little paw on that side.
-        const k = Math.min(1, 1.25 / touchDistance);
-        goal = { x: touch.x * k, y: touch.y * k + 0.04 };
+        goal = { x: touch.x, y: touch.y };
       } else {
-        // Otherwise both paws come out and wave a little, happily.
-        const wave = still ? 0 : Math.sin(time * 4.2 + i * 1.7) * 0.05;
-        goal = { x: anchor.x + side * 0.26, y: anchor.y - 0.26 + wave };
+        // Otherwise both paws peek out and wave a little, happily.
+        const wave = still ? 0 : Math.sin(time * 4.2 + i * 1.7) * 0.04;
+        goal = { x: anchor.x + side * 0.13, y: anchor.y - 0.09 + wave };
       }
       const want = state.hasBear ? (heldAmount > 0.7 ? 1 : 0) : cuddling ? 1 : 0;
-      return { anchor, bow: heldAmount, ...handPose(anchor, goal, reach[i].step(dt, want)) };
+      return { anchor, ...handPose(anchor, goal, reach[i].step(dt, want)) };
     });
 
     const R = radius(),
@@ -336,23 +358,6 @@ export function createRoom(host) {
       cushionArt.height,
     );
 
-    // The bear glides between the cushion and Byakuya's arms.
-    const held = {
-      x: center.x,
-      y: center.y + (BEAR_HELD.top + BEAR_HELD.size) * R,
-    };
-    const onCushion = {
-      // Scoot aside when Byakuya is the one resting on the cushion.
-      x: cushion.x - rest * cushion.width * 0.32,
-      y: cushion.baseY - (cushionArt.baseY - cushionArt.seatY) + r * 0.08,
-    };
-    const goal = state.hasBear ? held : onCushion;
-    if (Number.isNaN(bearPos.x)) bearPos.copy(goal);
-    const follow = ease(dt, state.hasBear && heldAmount > 0.7 ? 14 : 2.6);
-    bearPos.x += (goal.x - bearPos.x) * follow;
-    bearPos.y += (goal.y - bearPos.y) * follow;
-    const bearSize = r * 1.15 + (R * BEAR_HELD.size - r * 1.15) * heldAmount,
-      bearTilt = heldAmount * (still ? 0 : Math.sin(time * 0.9) * 0.05);
     const bearInFront = heldAmount > 0.5;
     if (!bearInFront) drawBear(bearPos.x, bearPos.y, bearSize, bearTilt);
 

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  HAND_LENGTH,
   SHAPE,
   basePoint,
   deformPoint,
@@ -77,13 +78,22 @@ test("休息時攤扁，表情跟著身體往下", () => {
   assert.ok(Math.abs(bottom.y - SHAPE.bottom) < 1e-9);
 });
 
+test("小手很短：再遠的目標也只伸出一小截", () => {
+  const anchor = { x: 0.8, y: 0.32 },
+    far = handPose(anchor, { x: 2.5, y: -1 }, 1),
+    near = handPose(anchor, { x: 0.9, y: 0.25 }, 1);
+  assert.ok(Math.abs(Math.hypot(far.x - anchor.x, far.y - anchor.y) - HAND_LENGTH) < 1e-9);
+  assert.ok(HAND_LENGTH <= 0.25);
+  assert.ok(Math.abs(near.x - 0.9) < 1e-9 && Math.abs(near.y - 0.25) < 1e-9);
+});
+
 test("小手不抱東西時收回身體裡", () => {
   const anchor = { x: -0.6, y: 0.5 },
     goal = { x: -0.3, y: 0.9 },
     reach = new Spring(0, 60, 11);
   for (let i = 0; i < 60; i++) reach.step(1 / 60, 1);
   const out = handPose(anchor, goal, reach.value);
-  assert.ok(Math.hypot(out.x - anchor.x, out.y - anchor.y) > 0.3);
+  assert.ok(Math.hypot(out.x - anchor.x, out.y - anchor.y) > 0.15);
   for (let i = 0; i < 180; i++) reach.step(1 / 60, 0);
   const back = handPose(anchor, goal, reach.value);
   assert.ok(Math.hypot(back.x - anchor.x, back.y - anchor.y) < 0.01);
