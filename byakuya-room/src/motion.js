@@ -61,3 +61,28 @@ export class FaceMotion {
     return this.features;
   }
 }
+
+// Occasional soft blinks; returns how closed the eyes are (0 open, 1 shut).
+export class Blinker {
+  constructor(seed = 0.37) {
+    this.seed = seed;
+    this.wait = 2.4;
+    this.phase = -1;
+  }
+  step(dt) {
+    dt = clamp(dt, 0, 0.1);
+    if (this.phase < 0) {
+      this.wait -= dt;
+      if (this.wait <= 0) this.phase = 0;
+      return 0;
+    }
+    this.phase += dt / 0.16;
+    if (this.phase >= 1) {
+      this.phase = -1;
+      this.seed = (this.seed * 9301 + 0.49297) % 1;
+      this.wait = 2.2 + this.seed * 3.6;
+      return 0;
+    }
+    return Math.sin(this.phase * Math.PI);
+  }
+}

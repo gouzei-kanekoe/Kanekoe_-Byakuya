@@ -7,12 +7,12 @@ test("直接開啟版不再依賴外部樣式或模組檔案，並保留授權",
   const result = inlineAssets(html, new Map([
     ["./assets/room.js", 'console.log("白夜 </script>");'],
     ["./assets/room.css", "body{margin:0}"],
-  ]), "Three.js MIT license");
+  ]), "第三方授權說明");
   assert.ok(result.includes("data-standalone"));
   assert.ok(result.includes("<style>body{margin:0}</style>"));
   assert.ok(result.includes('<script type="module">'));
   assert.ok(result.includes("<\\/script>"));
-  assert.ok(result.includes("Three.js MIT license"));
+  assert.ok(result.includes("第三方授權說明"));
   assert.ok(!result.includes('src="./assets/') && !result.includes('href="./assets/'));
 });
 

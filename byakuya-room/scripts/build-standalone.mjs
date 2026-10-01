@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,8 +38,11 @@ export async function buildStandalone(project) {
     assets.set(match[1], await readFile(resolve(dist, match[1]), "utf8"));
   const license = await readFile(resolve(project, "public/THIRD_PARTY_LICENSES.txt"), "utf8");
   const standalone = inlineAssets(html, assets, license);
-  for (const path of [resolve(project, "index.html"), resolve(dist, "index.html")])
-    await writeFile(path, standalone, "utf8");
+  const outputs = [resolve(project, "index.html"), resolve(dist, "index.html")];
+  // The repository root keeps a double-click copy; refresh it so the two never drift.
+  const rootCopy = resolve(project, "..", "直接開啟白夜.html");
+  if (await access(rootCopy).then(() => true, () => false)) outputs.push(rootCopy);
+  for (const path of outputs) await writeFile(path, standalone, "utf8");
   await writeFile(resolve(project, ".nojekyll"), "", "utf8");
   console.log("index.html 已產生，支援直接雙擊與 GitHub Pages，程式和樣式都已內嵌。");
 }
